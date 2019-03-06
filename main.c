@@ -1,61 +1,97 @@
 #include <hidef.h> /* for EnableInterrupts macro */
 #include "derivative.h" /* include peripheral declarations */
 
-#define PTA0CH0  0x00
-#define PTA1CH1  0x01
-#define SENSOR   26
-#define BANDGAP  27
-#define IRQ      0x60
+#define RS PTAD_PTAD1
+#define E  PTAD_PTAD0
+#define BUS PTBD
 
-unsigned int resultado=0x0000;
+#define  Mtim4ms  128
 
+unsigned char LCD8[7]=
+{0x38,0x38,0x38,0x0F,0x06,0x01,0x00};
 
-void initADC (unsigned char canal);
-unsigned int medicion(unsigned char canal);
-void irqADC (void);
+unsigned char LCD4[7]=
+{0x33,0x32,0x28,0x0F,0x06,0x01,0x00};
 
-
+void MCU_init(void);
+void dato(unsigned char x);
+void instruccion(unsigned char x);
+void inicializa(unsigned char *tabla);
+void mensaje(unsigned char *cadena);
+void enable(void);
+void retardoMTIM(unsigned char modulo);
 
 void main(void) {
-  SOPT1_COPE=0;
-	//EnableInterrupts;
-  
-initADC(PTA0CH0);
-  
+unsigned char nombre[8]={"GRUPO7K"};
+	SOPT1=0x12;
+
+	inicializa(&LCD8[0]);
+	mensaje(&nombre[0]);  
 
   for(;;) {
-	  resultado=medicion(PTA0CH0);
+    __RESET_WATCHDOG();	/* feeds the dog */
   } /* loop forever */
   /* please make sure that you never leave main */
 }
 
 
+void MCUinit(void)
+{//Configurar los PINES del Micro como salida
+PTBDD=0xFF;
+PTADD_PTADD0=1;
+PTADD_PTADD1=1;
+//Inicializar los PINES en un Estado
+BUS=0xFF;
+RS=0;
+E=0;
+}
 
-void initADC (unsigned char canal)
+void dato(unsigned char x)
 {
-unsigned char pin=0x00;
+RS=1;
+BUS=x;
+enable();
+}
 
-ADCSC2=0x00;  // Trigger Por Software 
-ADCCFG=0x08;  // BusClock 
-if(canal== 0x00) pin=0x01;
-else pin=canal;
-APCTL1=pin;
-ADCSC1=0x00|canal; // Canal PTA0 , IRQ=1 
+void instruccion(unsigned char x)
+{
+RS=0;
+BUS=x;
+enable();
+}
+
+void inicializa(unsigned char *tabla)
+{
+	while(*tabla!=0x00)
+	{
+	instruccion(*tabla);	
+	tabla++;	
+	}
+}
+void mensaje(unsigned char *cadena)
+{
+	while(*cadena!=0x00)
+	{
+	dato(*cadena);	
+	cadena++;	
+	}
+	
+}
+
+void enable(void)
+{
+E=0;
+retardoMTIM(Mtim4ms);
+E=1;
 }
 
 
-
-unsigned int medicion(unsigned char canal)
+void retardoMTIM(unsigned char modulo)
 {
-ADCSC1=0x00|canal; 
-while(ADCSC1_COCO==0); // Espera para hacer Conversion
-(void)(ADCSC1);  // LECTURA DUMMY
-return ADCR;
-}
-
-
-interrupt 19 void irqADC (void)
-{
-resultado=ADCR;	
-ADCSC1=0x60;  
+MTIMMOD=modulo;
+MTIMCLK=0x0F;  // Preescaler =256 /Busclk
+MTIMSC_TRST=1;
+MTIMSC_TSTP=0;  // Arranca MTIM
+while(MTIMSC_TOF==0);  // Espera el retardo
+MTIMSC_TSTP=1;
 }
