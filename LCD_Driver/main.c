@@ -4,7 +4,7 @@
 #define RS PTAD_PTAD1
 #define E  PTAD_PTAD0
 #define BUS PTBD
-
+#define CUATRO
 #define  Mtim4ms  128
 
 unsigned char LCD8[7]=
@@ -16,6 +16,9 @@ unsigned char LCD4[7]=
 void MCU_init(void);
 void dato(unsigned char x);
 void instruccion(unsigned char x);
+void instruccion48(unsigned char dato,unsigned char tipo);
+void instruccion4(unsigned char dato);
+
 void inicializa(unsigned char *tabla);
 void mensaje(unsigned char *cadena);
 void enable(void);
@@ -25,7 +28,8 @@ void main(void) {
 unsigned char nombre[8]={"GRUPO7K"};
 	SOPT1=0x12;
 
-	inicializa(&LCD8[0]);
+	//inicializa(&LCD8[0]);
+	inicializa(&LCD4[0]);
 	mensaje(&nombre[0]);  
 
   for(;;) {
@@ -60,11 +64,51 @@ BUS=x;
 enable();
 }
 
+void instruccion48(unsigned char dato,unsigned char tipo)
+{
+unsigned char x=0x00;
+x=dato;
+RS=0;
+if(tipo==0x04)
+	{
+	dato&=0xF0;
+	BUS=dato;
+	enable();
+	x<<=4;
+	BUS=x;
+	enable();
+	}		
+else
+	{
+	BUS=dato;
+	enable();
+	}
+}
+
+void instruccion4(unsigned char dato)
+{
+unsigned char x=0x00;
+	x=dato;
+	RS=0;
+	dato&=0xF0;
+	BUS=dato;
+	enable();
+	x<<=4;
+	BUS=x;
+	enable();
+}
+
+
+
 void inicializa(unsigned char *tabla)
 {
 	while(*tabla!=0x00)
 	{
-	instruccion(*tabla);	
+	instruccion(*tabla);
+#ifdef CUATRO	
+	instruccion4(*tabla)
+#endif	
+	instruccion48(*tabla,0x04);
 	tabla++;	
 	}
 }
