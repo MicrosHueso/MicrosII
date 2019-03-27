@@ -1,0 +1,66 @@
+#include <hidef.h> /* for EnableInterrupts macro */
+#include "derivative.h" /* include peripheral declarations */
+
+#define  SEGUNDO  0x06
+
+void init_puertos(void);
+void KBI_init(void);
+void retardo_rti(unsigned char x);
+void irq_kbi(void);  // RUTINA DE INTERRUPCION
+
+void main(void) {
+	SOPT1_COPE=0;
+	init_puertos();
+	KBI_init();
+	EnableInterrupts;
+  for(;;) {
+    
+  } /* loop forever */
+  /* please make sure that you never leave main */
+}
+
+void init_puertos(void)
+{
+	 PTBDD_PTBDD7=1;
+	 PTBDD_PTBDD6=1;
+	 PTADD_PTADD2=0; // Entrada para KBI
+	 PTAPE_PTAPE2=1; // Resistencia de Pull Up
+	 /* EVITAR FALSOs */
+	 PTADD_PTADD2=1;
+	 PTAD_PTAD2=1; 
+	 
+}
+
+void KBI_init(void)
+{
+KBIPE=0x04;  // Para utilizar el PTAD2
+KBIES=0x00;  // Para quede por transicion de bajada
+KBISC=0x02; // KBIMOD=Transicion, KBIE=IRQ_ON, KBF=Off
+}
+
+
+
+void retardo_rti(unsigned char x)
+{
+SRTISC=x;
+while(SRTISC_RTIF==0);
+SRTISC_RTIACK=1; // Apagar Bandera
+SRTISC=0x00;
+}
+
+
+
+
+interrupt 18 void irq_kbi(void) // Aqui se le indica al compilador poner la etiqueta en la direccion 18 del vector de interrupciones
+{
+	char i = 0;
+	DisableInterrupts;
+
+	KBISC_KBACK = 1; // Borrar la bandera (KBIF)
+	while (i<10) {
+	PTBD_PTBD6 = ~PTBD_PTBD6;
+	i++;
+	retardo_rti(SEGUNDO);
+	}	
+	EnableInterrupts;
+}
