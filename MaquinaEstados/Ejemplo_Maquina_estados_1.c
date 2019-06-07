@@ -49,5 +49,5 @@ void PRENDE1() {
 void APAGA2() {
   LED1=0;
   LED2=1;
-  LED3=0;
+  LED3=1;
 }
