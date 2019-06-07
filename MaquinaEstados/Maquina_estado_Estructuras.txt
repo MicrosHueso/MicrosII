@@ -15,7 +15,7 @@ typedef
 
 estado Maquina[2]={
 {0,0xFF, {Enceder,Apagar}},
-{1,0xFF,{Apagar,Encender}}
+{1,0x80,{Apagar,Encender}}
 };
 
 void (*puntero)(void);
